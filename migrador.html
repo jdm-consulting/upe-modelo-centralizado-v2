@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrador a Firebase V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Usamos SheetJS para manipular Excel de forma sencilla -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <!-- Cabecera -->
+        <div class="bg-slate-900 p-6 text-white border-b-4 border-emerald-500">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-database text-3xl text-emerald-400"></i>
+                <div>
+                    <h1 class="text-2xl font-bold">Herramienta de Migración V2</h1>
+                    <p class="text-sm text-slate-400">Convierte tus hojas de Excel a la nueva arquitectura del Expediente Maestro</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-8 space-y-8">
+            
+            <!-- Paso 1: Generar Plantilla -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                <h3 class="font-bold text-blue-900 mb-2"><i class="fa-solid fa-1"></i> PASO 1: Obtener la Plantilla</h3>
+                <p class="text-sm text-blue-700 mb-4">Descarga un archivo Excel de prueba con 5 registros ficticios estructurados correctamente.</p>
+                <button onclick="generarExcelPrueba()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel"></i> Descargar Excel de Prueba
+                </button>
+            </div>
+
+            <!-- Paso 2: Subir Excel -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                <h3 class="font-bold text-slate-800 mb-2"><i class="fa-solid fa-2"></i> PASO 2: Cargar Datos</h3>
+                <p class="text-sm text-slate-600 mb-4">Sube el archivo Excel que descargaste (o tu base de datos real con las mismas cabeceras).</p>
+                
+                <div class="flex items-center justify-center w-full">
+                    <label for="file-upload" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-slate-50 transition">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                            <p class="mb-1 text-sm text-slate-500 font-semibold" id="file-name">Haz clic para seleccionar el archivo Excel (.xlsx)</p>
+                        </div>
+                        <input id="file-upload" type="file" accept=".xlsx, .xls" class="hidden" onchange="mostrarNombreArchivo(this)" />
+                    </label>
+                </div>
+            </div>
+
+            <!-- Paso 3: Generar JSON -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-center">
+                <h3 class="font-bold text-emerald-900 mb-2"><i class="fa-solid fa-3"></i> PASO 3: Ejecutar Migración</h3>
+                <p class="text-sm text-emerald-700 mb-4">El sistema leerá el Excel y construirá la matriz de Firebase.</p>
+                <button onclick="procesarExcel()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-bold rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-export"></i> PROCESAR Y DESCARGAR ARCHIVO JSON
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Función para mostrar el nombre del archivo seleccionado
+        function mostrarNombreArchivo(input) {
+            const fileNameDisplay = document.getElementById('file-name');
+            if (input.files && input.files.length > 0) {
+                fileNameDisplay.innerHTML = `<span class="text-emerald-600 font-bold">Archivo seleccionado:</span> ${input.files[0].name}`;
+            }
+        }
+
+        // 1. Generar Excel Ficticio con SheetJS
+        function generarExcelPrueba() {
+            const datosPrueba = [
+                {
+                    FECHA_REGISTRO: "2026-10-10", EQUIPO_PROPIETARIO: "EQUIPO 1", ESPECIALISTA_LEGAL: "ABOGADO - EQUIPO 1", TURNO: "MAÑANA",
+                    HOJA_TRAMITE: "001-2026", NUM_EXPEDIENTE: "100-2026", FOLIOS: 15, APELLIDOS: "PEREZ GOMEZ", NOMBRES: "JUAN CARLOS",
+                    DNI: "12345678", SEXO: "MASCULINO", FECHA_NACIMIENTO: "1980-05-15", EDAD: 46, DISTRITO: "CHORRILLOS",
+                    FECHA_EVAL_LEGAL: "2026-10-11", ESTADO_LEGAL: "4. CONCLUIDO / ARCHIVADO", TIPO_ASESORIA: "ORIENTACIÓN Y ABSOLUCIÓN DE CONSULTAS", 
+                    OBSERVACIONES_LEGAL: "SE BRINDÓ ORIENTACIÓN LEGAL SOBRE PENSIÓN DE ALIMENTOS."
+                },
+                {
+                    FECHA_REGISTRO: "2026-10-11", EQUIPO_PROPIETARIO: "EQUIPO 2", ESPECIALISTA_LEGAL: "ABOGADO - EQUIPO 2", TURNO: "TARDE",
+                    HOJA_TRAMITE: "002-2026", NUM_EXPEDIENTE: "101-2026", FOLIOS: 30, APELLIDOS: "MENDOZA RUIZ", NOMBRES: "MARIA ELENA",
+                    DNI: "87654321", SEXO: "FEMENINO", FECHA_NACIMIENTO: "1990-08-20", EDAD: 36, DISTRITO: "LURÍN",
+                    FECHA_EVAL_LEGAL: "2026-10-12", ESTADO_LEGAL: "1. EN EVALUACIÓN LEGAL", TIPO_ASESORIA: "ASESORÍA LEGAL ESPECIALIZADA", 
+                    OBSERVACIONES_LEGAL: "CASO EN REVISIÓN POR VIOLENCIA FAMILIAR."
+                },
+                {
+                    FECHA_REGISTRO: "2026-10-12", EQUIPO_PROPIETARIO: "EQUIPO 3", ESPECIALISTA_LEGAL: "ABOGADO - EQUIPO 3", TURNO: "MAÑANA",
+                    HOJA_TRAMITE: "003-2026", NUM_EXPEDIENTE: "102-2026", FOLIOS: 10, APELLIDOS: "SALAS DIAZ", NOMBRES: "PEDRO",
+                    DNI: "11223344", SEXO: "MASCULINO", FECHA_NACIMIENTO: "1975-11-10", EDAD: 50, DISTRITO: "SAN JUAN DE MIRAFLORES",
+                    FECHA_EVAL_LEGAL: "2026-10-12", ESTADO_LEGAL: "2. INFORME LEGAL EMITIDO", TIPO_ASESORIA: "EMISIÓN DE OPINIÓN LEGAL", 
+                    OBSERVACIONES_LEGAL: "SE EMITIÓ INFORME FAVORABLE."
+                },
+                {
+                    FECHA_REGISTRO: "2026-10-12", EQUIPO_PROPIETARIO: "EQUIPO 1", ESPECIALISTA_LEGAL: "ABOGADO - EQUIPO 1", TURNO: "TARDE",
+                    HOJA_TRAMITE: "004-2026", NUM_EXPEDIENTE: "103-2026", FOLIOS: 12, APELLIDOS: "ROJAS VILA", NOMBRES: "CARMEN",
+                    DNI: "44332211", SEXO: "FEMENINO", FECHA_NACIMIENTO: "2000-01-05", EDAD: 26, DISTRITO: "VILLA EL SALVADOR",
+                    FECHA_EVAL_LEGAL: "2026-10-13", ESTADO_LEGAL: "1. EN EVALUACIÓN LEGAL", TIPO_ASESORIA: "DEFENSA Y PATROCINIO LEGAL", 
+                    OBSERVACIONES_LEGAL: "SE INICIA PATROCINIO PARA TENENCIA."
+                },
+                {
+                    FECHA_REGISTRO: "2026-10-13", EQUIPO_PROPIETARIO: "EQUIPO 2", ESPECIALISTA_LEGAL: "ABOGADO - EQUIPO 2", TURNO: "MAÑANA",
+                    HOJA_TRAMITE: "005-2026", NUM_EXPEDIENTE: "104-2026", FOLIOS: 8, APELLIDOS: "LOPEZ CRUZ", NOMBRES: "JOSE",
+                    DNI: "99887766", SEXO: "MASCULINO", FECHA_NACIMIENTO: "1985-02-28", EDAD: 41, DISTRITO: "VILLA MARÍA DEL TRIUNFO",
+                    FECHA_EVAL_LEGAL: "2026-10-13", ESTADO_LEGAL: "3. DERIVADO A INSTANCIA JUDICIAL", TIPO_ASESORIA: "ASESORÍA LEGAL ESPECIALIZADA", 
+                    OBSERVACIONES_LEGAL: "CASO DERIVADO AL JUZGADO DE FAMILIA."
+                }
+            ];
+
+            const worksheet = XLSX.utils.json_to_sheet(datosPrueba);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Datos Migracion");
+            
+            // Descarga el archivo
+            XLSX.writeFile(workbook, "Plantilla_Prueba_UPE.xlsx");
+        }
+
+        // 2. Procesar el Excel Subido
+        function procesarExcel() {
+            const fileInput = document.getElementById('file-upload');
+            if (fileInput.files.length === 0) {
+                return alert("Por favor, selecciona un archivo Excel primero.");
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true, dateNF: 'yyyy-mm-dd' });
+                
+                // Lee la primera hoja
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Convierte a JSON (raw: false obliga a que las fechas se lean como texto YYYY-MM-DD según dateNF)
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
+                construirFirebaseJSON(jsonData);
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 3. Construir Estructura V2 y Descargar
+        function construirFirebaseJSON(filas) {
+            const firebaseData = {};
+
+            filas.forEach((row, index) => {
+                // Autogeneramos un código maestro (Ej: EXP-0001)
+                const codigoMaestro = "EXP-" + String(index + 1).padStart(4, "0");
+
+                firebaseData[codigoMaestro] = {
+                    codigo: codigoMaestro,
+                    equipoPropietario: row["EQUIPO_PROPIETARIO"] ? row["EQUIPO_PROPIETARIO"].toUpperCase() : "EQUIPO 1",
+                    datosGenerales: {
+                        fechaRegistroGlobal: row["FECHA_REGISTRO"] || "",
+                        numHojaTramite: row["HOJA_TRAMITE"] || "",
+                        numExpediente: row["NUM_EXPEDIENTE"] || "",
+                        numFolios: parseInt(row["FOLIOS"]) || 0,
+                        apellidosCompletos: (row["APELLIDOS"] || "").toUpperCase(),
+                        nombresCompletos: (row["NOMBRES"] || "").toUpperCase(),
+                        dni: String(row["DNI"] || ""),
+                        sexo: (row["SEXO"] || "").toUpperCase(),
+                        fechaNacimiento: row["FECHA_NACIMIENTO"] || "",
+                        edad: parseInt(row["EDAD"]) || 0,
+                        distritoResidencia: (row["DISTRITO"] || "").toUpperCase()
+                    },
+                    intervencionLegal: {
+                        especialista: (row["ESPECIALISTA_LEGAL"] || "").toUpperCase(),
+                        turnoAsignacion: (row["TURNO"] || "").toUpperCase(),
+                        fechaEvaluacion: row["FECHA_EVAL_LEGAL"] || "",
+                        estadoLegal: (row["ESTADO_LEGAL"] || "").toUpperCase(),
+                        tipoAsesoria: (row["TIPO_ASESORIA"] || "").toUpperCase(),
+                        observaciones: (row["OBSERVACIONES_LEGAL"] || "").toUpperCase()
+                    }
+                };
+
+                // Si tuvieras datos de psicología en el Excel, se agregarían así automáticamente:
+                if (row["ESTADO_PSICO"]) {
+                    firebaseData[codigoMaestro].intervencionPsicologica = {
+                        especialista: row["ESPECIALISTA_PSICO"] || "",
+                        fechaEvaluacion: row["FECHA_PSICO"] || "",
+                        estadoPsicologico: row["ESTADO_PSICO"] || "",
+                        tipoAtencion: row["TIPO_PSICO"] || "",
+                        observaciones: row["OBSERVACIONES_PSICO"] || ""
+                    };
+                }
+                
+                // Igual para Trabajo Social si existieran cabeceras
+                if (row["ESTADO_SOCIAL"]) {
+                    firebaseData[codigoMaestro].intervencionSocial = {
+                        especialista: row["ESPECIALISTA_SOCIAL"] || "",
+                        fechaEvaluacion: row["FECHA_SOCIAL"] || "",
+                        estadoSocial: row["ESTADO_SOCIAL"] || "",
+                        tipoIntervencion: row["TIPO_SOCIAL"] || "",
+                        observaciones: row["OBSERVACIONES_SOCIAL"] || ""
+                    };
+                }
+            });
+
+            // Disparar la descarga del archivo JSON final
+            const blob = new Blob([JSON.stringify(firebaseData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'migracion_upe_v2.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert("✅ ¡Archivo JSON generado exitosamente! Ya está listo para importarlo a Firebase.");
+        }
+    </script>
+</body>
+</html>

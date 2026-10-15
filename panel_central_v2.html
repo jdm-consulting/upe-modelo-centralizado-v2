@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Central 360° - V2 Gerencial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- MODAL DE ACCESO AL PANEL -->
+    <div id="modalLogin" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800">PANEL CENTRAL 360° V2</h2>
+                <p class="text-xs text-sky-600 font-bold bg-sky-50 py-1 rounded">CONTROL GERENCIAL Y TRAZABILIDAD</p>
+                <p class="text-xs text-slate-500">Identifíquese para determinar sus privilegios de acceso.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">PERFIL DE ACCESO:*</label>
+                    <select id="loginUsuario" class="w-full text-sm p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none font-medium">
+                        <option value="">-- SELECCIONE SU ROL --</option>
+                        <option value="DIRECTOR/A">DIRECTOR/A (Acceso Total)</option>
+                        <option value="ADMINISTRADOR/A">ADMINISTRADOR/A (Acceso Total)</option>
+                        <option value="ADMISIONISTA">ADMISIONISTA (Solo Consulta)</option>
+                    </select>
+                </div>
+                <button onclick="iniciarSesionPanel()" class="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-sm transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> INGRESAR AL PANEL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabecera Institucional -->
+    <header class="bg-[#0f4c6e] text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm border border-white/10">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">Módulo Central de Control 360° (V2)</h1>
+                    <p class="text-xs text-emerald-300 font-bold tracking-wider">LECTOR DE EXPEDIENTES MAESTROS</p>
+                </div>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                <span id="badgeRolActivo" class="px-3 py-1.5 bg-slate-800 text-sky-300 text-xs rounded-full font-semibold border border-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-tie"></i> SIN SESIÓN
+                </span>
+                <span id="estado-conexion" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-200 border border-amber-400/30">
+                    <span class="w-2 h-2 mr-1.5 bg-amber-400 rounded-full animate-pulse"></span> Conectando...
+                </span>
+                <button onclick="cerrarSesionPanel()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-power-off"></i> <span>Salir</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navegación de Pestañas -->
+    <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-6 flex space-x-8">
+            <button onclick="cambiarPestana('trazabilidad')" id="btn-tab-trazabilidad" class="py-4 px-1 border-b-2 font-semibold text-sm border-sky-600 text-sky-600 flex items-center space-x-2 transition">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <span>TRAZABILIDAD 360° (VISTA DE CIUDADANO)</span>
+            </button>
+            <button onclick="cambiarPestana('dashboard')" id="btn-tab-dashboard" class="py-4 px-1 border-b-2 font-semibold text-sm border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 transition hidden">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>DASHBOARD GERENCIAL (PRODUCCIÓN Y TIEMPOS)</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl mx-auto px-6 py-8 flex-grow w-full space-y-6">
+
+        <!-- Pestaña 1: Trazabilidad 360° -->
+        <section id="vista-trazabilidad" class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <label class="block text-xs font-bold uppercase tracking-wider text-emerald-800 mb-1">Buscador Universal de Expedientes</label>
+                <p class="text-xs text-slate-500 mb-4">Ingrese Apellidos, N° DNI, N° de Expediente o Hoja de Trámite para informar el estado actual en todas las áreas.</p>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-grow">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="input-criterio" placeholder="EJ: 654321, MORON, FIDELINA..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-600 focus:bg-white focus:outline-none transition uppercase" onkeypress="if(event.key==='Enter') realizarBusquedaTrazabilidad()">
+                    </div>
+                    <button onclick="realizarBusquedaTrazabilidad()" class="bg-[#00794c] hover:bg-[#00603c] text-white px-6 py-3 rounded-xl font-semibold text-sm shadow transition flex items-center justify-center space-x-2">
+                        <span>CONSULTAR ESTADO</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tarjeta de Resultados 360 -->
+            <div class="bg-slate-900 rounded-2xl text-white shadow-xl overflow-hidden border border-slate-800">
+                <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                    <div>
+                        <span class="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">Expediente Maestro <span id="lbl-equipo" class="text-white bg-slate-700 px-1.5 py-0.5 rounded ml-1"></span></span>
+                        <h2 id="card-administrado" class="text-lg font-bold text-white tracking-wide mt-0.5">-- REALICE UNA BÚSQUEDA --</h2>
+                    </div>
+                    <div class="text-xs text-slate-300 flex flex-wrap gap-x-4 gap-y-1">
+                        <span>Cód: <strong id="card-cod" class="font-mono text-emerald-300">---</strong></span>
+                        <span>DNI: <strong id="card-dni" class="font-mono text-emerald-300">---</strong></span>
+                        <span>N° Exp: <strong id="card-exp" class="font-mono text-emerald-300">---</strong></span>
+                        <span>HT: <strong id="card-ht" class="font-mono text-emerald-300">---</strong></span>
+                    </div>
+                </div>
+
+                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Módulo Legal -->
+                    <div class="bg-white text-slate-800 rounded-2xl p-5 border-2 border-indigo-300 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center space-x-1.5">
+                                    <span>⚖️ MÓDULO LEGAL</span>
+                                </span>
+                                <span id="badge-legal" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">SIN REGISTRO</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-1">Responsable: <strong id="resp-legal" class="text-slate-900 font-semibold">---</strong></p>
+                            <p class="text-xs text-slate-600 mb-1">Detalle: <span id="det-legal" class="text-slate-900 font-medium">-</span></p>
+                            <p class="text-xs text-slate-600 mb-4">Fecha Registro: <span id="fec-legal" class="text-slate-900 font-medium">-</span></p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 font-mono whitespace-pre-wrap" id="obs-legal">PROVEÍDO / AVANCE: Sin observaciones.</div>
+                    </div>
+
+                    <!-- Módulo Psicología -->
+                    <div class="bg-white text-slate-800 rounded-2xl p-5 border-2 border-purple-300 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs font-bold uppercase tracking-wider text-purple-900 flex items-center space-x-1.5">
+                                    <span>🧠 MÓDULO PSICOLOGÍA</span>
+                                </span>
+                                <span id="badge-psico" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">SIN REGISTRO</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-1">Responsable: <strong id="resp-psico" class="text-slate-900 font-semibold">---</strong></p>
+                            <p class="text-xs text-slate-600 mb-1">Detalle: <span id="det-psico" class="text-slate-900 font-medium">-</span></p>
+                            <p class="text-xs text-slate-600 mb-4">Fecha Eval: <span id="fec-psico" class="text-slate-900 font-medium">-</span></p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 font-mono whitespace-pre-wrap" id="obs-psico">PROVEÍDO / AVANCE: Sin observaciones.</div>
+                    </div>
+
+                    <!-- Módulo Trabajo Social -->
+                    <div class="bg-white text-slate-800 rounded-2xl p-5 border-2 border-emerald-300 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center space-x-1.5">
+                                    <span>🏠 TRABAJO SOCIAL</span>
+                                </span>
+                                <span id="badge-social" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">SIN REGISTRO</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-1">Responsable: <strong id="resp-social" class="text-slate-900 font-semibold">---</strong></p>
+                            <p class="text-xs text-slate-600 mb-1">Detalle: <span id="det-social" class="text-slate-900 font-medium">-</span></p>
+                            <p class="text-xs text-slate-600 mb-4">Fecha Eval: <span id="fec-social" class="text-slate-900 font-medium">-</span></p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 font-mono whitespace-pre-wrap" id="obs-social">PROVEÍDO / AVANCE: Sin observaciones.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pestaña 2: Dashboard de Producción y Rendimiento -->
+        <section id="vista-dashboard" class="hidden space-y-6">
+
+            <!-- Panel de Filtros Superior -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">CREADO DESDE:</label>
+                        <input type="date" id="filtro-fecha-desde" onchange="actualizarDashboardGraficos()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">CREADO HASTA:</label>
+                        <input type="date" id="filtro-fecha-hasta" onchange="actualizarDashboardGraficos()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">EQUIPO PROPIETARIO:</label>
+                        <select id="filtro-equipo" onchange="actualizarDashboardGraficos()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-sky-500 focus:outline-none font-medium">
+                            <option value="TODOS">-- TODOS LOS EQUIPOS --</option>
+                            <option value="EQUIPO 1">Eq. 1</option>
+                            <option value="EQUIPO 2">Eq. 2</option>
+                            <option value="EQUIPO 3">Eq. 3</option>
+                            <option value="EQUIPO 4">Eq. 4</option>
+                            <option value="EQUIPO 5">Eq. 5</option>
+                            <option value="EQUIPO 6">Eq. 6</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="cargarDatosCentrales()" class="w-full bg-[#111827] hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-rotate"></i>
+                            <span>ACTUALIZAR MÉTRICAS</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 Tarjetas KPI Principales -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">TOTAL EXP. MAESTROS</p>
+                        <h3 id="kpi-carga-total" class="text-3xl font-extrabold text-slate-800">0</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">INTERVENCIONES TOTALES</p>
+                        <h3 id="kpi-intervenciones" class="text-3xl font-extrabold text-emerald-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-check-double"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">CASOS EN EVALUACIÓN</p>
+                        <h3 id="kpi-pendientes" class="text-3xl font-extrabold text-amber-500">0</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-700 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-sky-300 mb-1">LATENCIA (TIEMPO MUERTO)</p>
+                        <h3 id="kpi-latencia" class="text-3xl font-extrabold text-white">0 Días</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center text-xl">
+                        <i class="fa-regular fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 1 de Gráficos: Avance Especialidades y Latencia -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between lg:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-chart-column text-indigo-600"></i>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">AVANCE DE INTERVENCIONES POR EQUIPO</h3>
+                        </div>
+                    </div>
+                    <div class="relative h-72 w-full">
+                        <canvas id="chartEquipos"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-traffic-light text-rose-500"></i>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">SLA: SEMÁFORO DE LATENCIA</h3>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mb-2 leading-tight">Mide el tiempo de reacción (en días) de los especialistas desde que Legal crea el expediente.</p>
+                    <div class="relative h-64 w-full">
+                        <canvas id="chartLatencia"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 2 de Gráficos: Ranking Equipo y Ranking Individual -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Top Equipos -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-users text-sky-600 text-lg"></i>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">RANKING GLOBAL POR EQUIPOS</h3>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mb-4 leading-tight">Mide el volumen total de intervenciones conjuntas (Legal + Psico + Social) por cada célula de trabajo.</p>
+                    <div class="relative h-64 w-full">
+                        <canvas id="chartRankEquipos"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top Individual -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa-solid fa-ranking-star text-amber-500 text-lg"></i>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">PRODUCCIÓN INDIVIDUAL (TOP 10)</h3>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mb-4 leading-tight">Especialistas con mayor cantidad de registros o atenciones firmadas en el sistema.</p>
+                    <div class="relative h-64 w-full">
+                        <canvas id="chartRankIndividual"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 3: Tabla Analítica (Ancho Completo) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col w-full">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i class="fa-solid fa-table-list text-emerald-600 text-lg"></i>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">DESGLOSE ANALÍTICO POR EQUIPO</h3>
+                </div>
+                <p class="text-[10px] text-slate-500 mb-4 leading-tight">Métrica de conversión porcentual entre los casos asignados a la célula y las intervenciones logradas.</p>
+                
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-600 uppercase font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="px-3 py-3 w-1/6">Equipo</th>
+                                <th class="px-3 py-3 text-center text-slate-500 w-1/6" title="Casos Totales Creados por Legal">Casos Ingresados</th>
+                                <th class="px-3 py-3 text-center text-blue-600 w-1/6">Avance Legal</th>
+                                <th class="px-3 py-3 text-center text-purple-600 w-1/6">Avance Psico</th>
+                                <th class="px-3 py-3 text-center text-emerald-600 w-1/6">Avance Social</th>
+                                <th class="px-3 py-3 text-center w-1/6">Cobertura Global</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaAnalitica" class="divide-y divide-slate-100 bg-white">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        UPE - Módulo Central de Control Multidisciplinario V2 &copy; 2026
+    </footer>
+
+    <script>
+        // API DIRECTA AL NODO MAESTRO V2
+        const FIREBASE_DB_URL = "https://upe-control-multidisciplinario-default-rtdb.firebaseio.com/expedientes_upe_v2.json";
+        
+        let perfilUsuario = null;
+        let BD_GLOBAL_TRAZABILIDAD = [];
+        
+        // Instancias de Gráficos
+        let chartEquiposInstance = null;
+        let chartLatenciaInstance = null;
+        let chartRankEquiposInstance = null;
+        let chartRankIndividualInstance = null;
+
+        function iniciarSesionPanel() {
+            const usr = document.getElementById("loginUsuario").value;
+            if (!usr) return alert("Seleccione su perfil para ingresar.");
+            perfilUsuario = usr;
+            
+            document.getElementById("badgeRolActivo").innerHTML = `<i class="fa-solid fa-user-tie"></i> ${usr}`;
+            document.getElementById("modalLogin").classList.add("hidden");
+            
+            const btnDashboard = document.getElementById('btn-tab-dashboard');
+            if (perfilUsuario === "ADMISIONISTA") {
+                btnDashboard.classList.add("hidden");
+                btnDashboard.classList.remove("flex");
+                cambiarPestana('trazabilidad');
+            } else {
+                btnDashboard.classList.remove("hidden");
+                btnDashboard.classList.add("flex");
+                cambiarPestana('dashboard'); 
+            }
+
+            cargarDatosCentrales();
+        }
+
+        function cerrarSesionPanel() {
+            perfilUsuario = null;
+            document.getElementById("modalLogin").classList.remove("hidden");
+            BD_GLOBAL_TRAZABILIDAD = [];
+            limpiarTarjetaTrazabilidad();
+        }
+
+        function formatearFecha(fechaStr) {
+            if (!fechaStr || fechaStr === "-" || fechaStr === "---") return "-";
+            if (typeof fechaStr === 'string' && fechaStr.includes('-')) {
+                const partes = fechaStr.split('T')[0].split('-');
+                if (partes.length === 3 && partes[0].length === 4) {
+                    const [anio, mes, dia] = partes;
+                    return `${dia}/${mes}/${anio}`;
+                }
+            }
+            return fechaStr;
+        }
+
+        function parseFechaLocal(str) {
+            if (!str || str === "-" || str === "---") return null;
+            if (typeof str === 'string') {
+                if (str.includes('/')) {
+                    const p = str.split('/');
+                    if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]);
+                }
+                if (str.includes('-')) {
+                    const p = str.split('T')[0].split('-');
+                    if (p.length === 3) return new Date(p[0], p[1] - 1, p[2]);
+                }
+            }
+            return null;
+        }
+
+        function calcularDiferenciaDias(fechaInicioStr, fechaFinStr) {
+            const f1 = parseFechaLocal(fechaInicioStr);
+            const f2 = parseFechaLocal(fechaFinStr);
+            if (!f1 || !f2) return -1;
+            const diffTime = Math.abs(f2 - f1);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        }
+
+        window.cambiarPestana = function(pestana) {
+            const btnTra = document.getElementById('btn-tab-trazabilidad');
+            const btnDas = document.getElementById('btn-tab-dashboard');
+            const secTra = document.getElementById('vista-trazabilidad');
+            const secDas = document.getElementById('vista-dashboard');
+
+            if (pestana === 'trazabilidad') {
+                btnTra.className = "py-4 px-1 border-b-2 font-semibold text-sm border-sky-600 text-sky-600 flex items-center space-x-2 transition";
+                btnDas.className = "py-4 px-1 border-b-2 font-semibold text-sm border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 transition";
+                secTra.classList.remove('hidden');
+                secDas.classList.add('hidden');
+            } else {
+                btnDas.className = "py-4 px-1 border-b-2 font-semibold text-sm border-sky-600 text-sky-600 flex items-center space-x-2 transition";
+                btnTra.className = "py-4 px-1 border-b-2 font-semibold text-sm border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-2 transition";
+                secDas.classList.remove('hidden');
+                secTra.classList.add('hidden');
+                actualizarDashboardGraficos();
+            }
+        };
+
+        window.cargarDatosCentrales = async function() {
+            const lblEstado = document.getElementById('estado-conexion');
+            lblEstado.className = "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-200 border border-amber-400/30";
+            lblEstado.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-amber-400 rounded-full animate-pulse"></span> Leyendo Servidor V2...`;
+
+            try {
+                const response = await fetch(FIREBASE_DB_URL);
+                const data = await response.json();
+                
+                if (!data) {
+                    BD_GLOBAL_TRAZABILIDAD = [];
+                } else {
+                    BD_GLOBAL_TRAZABILIDAD = Object.values(data).map(item => {
+                        const dg = item.datosGenerales || {};
+                        const fullname = `${dg.apellidosCompletos || ''} ${dg.nombresCompletos || ''}`.trim();
+                        
+                        item.administrado = fullname || "SIN NOMBRE";
+                        item.dni = dg.dni || "---";
+                        item.expediente = dg.numExpediente || "---";
+                        item.ht = dg.numHojaTramite || "---";
+                        item.equipoPropietario = item.equipoPropietario || "EQUIPO 1";
+                        
+                        item.busquedaIndex = `${fullname} ${item.dni} ${item.expediente} ${item.ht} ${item.codigo || ''}`.toUpperCase();
+                        
+                        return item;
+                    });
+                }
+
+                if (BD_GLOBAL_TRAZABILIDAD.length > 0) {
+                    lblEstado.className = "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-200 border border-emerald-400/30";
+                    lblEstado.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full"></span> Conectado (${BD_GLOBAL_TRAZABILIDAD.length} Casos)`;
+                } else {
+                    lblEstado.className = "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-sky-500/20 text-sky-200 border border-sky-400/30";
+                    lblEstado.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-sky-400 rounded-full"></span> Sin Registros V2`;
+                }
+
+                if(perfilUsuario !== "ADMISIONISTA") {
+                    actualizarDashboardGraficos();
+                }
+
+            } catch (error) {
+                console.error("Error al leer Firebase V2:", error);
+                lblEstado.className = "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-rose-500/20 text-rose-200 border border-rose-400/30";
+                lblEstado.innerHTML = `<span class="w-2 h-2 mr-1.5 bg-rose-400 rounded-full"></span> Error de Conexión`;
+            }
+        };
+
+        window.realizarBusquedaTrazabilidad = function() {
+            const criterio = document.getElementById('input-criterio').value.trim().toUpperCase();
+            if (!criterio) {
+                alert("Por favor ingrese un criterio de búsqueda (DNI, Expediente o Apellidos).");
+                return;
+            }
+
+            const encontrado = BD_GLOBAL_TRAZABILIDAD.find(item => item.busquedaIndex.includes(criterio));
+
+            if (!encontrado) {
+                alert("No se encontró el Expediente en la base de datos.");
+                limpiarTarjetaTrazabilidad();
+                return;
+            }
+
+            document.getElementById('card-administrado').innerText = encontrado.administrado;
+            document.getElementById('card-cod').innerText = encontrado.codigo || "---";
+            document.getElementById('card-dni').innerText = encontrado.dni || "---";
+            document.getElementById('card-exp').innerText = encontrado.expediente || "---";
+            document.getElementById('card-ht').innerText = encontrado.ht || "---";
+            document.getElementById('lbl-equipo').innerText = encontrado.equipoPropietario;
+
+            // LEGAL
+            const leg = encontrado.intervencionLegal || {};
+            const legEstado = leg.estadoLegal || "SIN REGISTRO";
+            document.getElementById('badge-legal').innerText = legEstado;
+            document.getElementById('badge-legal').className = obtenerClaseBadge(legEstado);
+            document.getElementById('resp-legal').innerText = leg.especialista || "---";
+            document.getElementById('det-legal').innerText = leg.tipoAsesoria || "-";
+            document.getElementById('fec-legal').innerText = formatearFecha(leg.fechaEvaluacion);
+            document.getElementById('obs-legal').innerText = `OBSERVACIONES: \n${leg.observaciones || "Sin observaciones."}`;
+
+            // PSICO
+            const psico = encontrado.intervencionPsicologica || {};
+            const psicoEstado = psico.estadoPsicologico || "PENDIENTE DE ATENCIÓN";
+            document.getElementById('badge-psico').innerText = psicoEstado;
+            document.getElementById('badge-psico').className = obtenerClaseBadge(psicoEstado);
+            document.getElementById('resp-psico').innerText = psico.especialista || "---";
+            document.getElementById('det-psico').innerText = psico.tipoAtencion || "-";
+            document.getElementById('fec-psico').innerText = formatearFecha(psico.fechaEvaluacion);
+            document.getElementById('obs-psico').innerText = `DIAGNÓSTICO: \n${psico.observaciones || "Aún no evaluado."}`;
+
+            // SOCIAL
+            const social = encontrado.intervencionSocial || {};
+            const socialEstado = social.estadoSocial || "PENDIENTE DE ATENCIÓN";
+            document.getElementById('badge-social').innerText = socialEstado;
+            document.getElementById('badge-social').className = obtenerClaseBadge(socialEstado);
+            document.getElementById('resp-social').innerText = social.especialista || "---";
+            document.getElementById('det-social').innerText = social.tipoIntervencion || "-";
+            document.getElementById('fec-social').innerText = formatearFecha(social.fechaEvaluacion);
+            document.getElementById('obs-social').innerText = `INFORME: \n${social.observaciones || "Aún no evaluado."}`;
+        };
+
+        function obtenerClaseBadge(estado) {
+            const est = String(estado || "").toUpperCase();
+            if (est.includes("SIN REGISTRO") || est.includes("PENDIENTE")) {
+                return "px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200";
+            } else if (est.includes("CONCLUIDO") || est.includes("EMITIDO") || est.includes("REALIZADA")) {
+                return "px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200";
+            } else {
+                return "px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200";
+            }
+        }
+
+        function esEstadoConcluido(est) {
+            const estado = String(est || "").toUpperCase();
+            if (!estado || estado === "SIN REGISTRO" || estado.includes("PENDIENTE")) return false;
+            return estado.includes("CONCLUIDO") || estado.includes("EMITIDO") || estado.includes("REALIZADA");
+        }
+
+        window.actualizarDashboardGraficos = function() {
+            if(perfilUsuario === "ADMISIONISTA") return;
+
+            const fechaDesdeVal = document.getElementById('filtro-fecha-desde').value;
+            const fechaHastaVal = document.getElementById('filtro-fecha-hasta').value;
+            const equipoVal = document.getElementById('filtro-equipo').value;
+
+            const fDesde = fechaDesdeVal ? parseFechaLocal(fechaDesdeVal) : null;
+            const fHasta = fechaHastaVal ? parseFechaLocal(fechaHastaVal) : null;
+            if (fHasta) fHasta.setHours(23, 59, 59, 999);
+
+            let expedientesValidos = BD_GLOBAL_TRAZABILIDAD.filter(item => {
+                if (equipoVal !== "TODOS") {
+                    const eqItem = (item.equipoPropietario || "").toUpperCase();
+                    if (!eqItem.includes(equipoVal)) return false;
+                }
+                if (fDesde || fHasta) {
+                    const fReg = parseFechaLocal(item.datosGenerales?.fechaRegistroGlobal);
+                    if (fReg) {
+                        if (fDesde && fReg < fDesde) return false;
+                        if (fHasta && fReg > fHasta) return false;
+                    }
+                }
+                return true;
+            });
+
+            let kpiCargaTotal = expedientesValidos.length;
+            let kpiIntervenciones = 0;
+            let casosEnProceso = 0; 
+            
+            // Variables Latencia
+            let sumaDiasLatencia = 0;
+            let totalEvaluacionesMedidas = 0;
+            let semaforoVerde = 0; 
+            let semaforoAmbar = 0; 
+            let semaforoRojo = 0;  
+
+            // Estructura de Equipos para Tabla y Gráfico
+            const equiposData = { 
+                "EQUIPO 1": { asignados: 0, legales: 0, psicos: 0, sociales: 0 }, 
+                "EQUIPO 2": { asignados: 0, legales: 0, psicos: 0, sociales: 0 }, 
+                "EQUIPO 3": { asignados: 0, legales: 0, psicos: 0, sociales: 0 }, 
+                "EQUIPO 4": { asignados: 0, legales: 0, psicos: 0, sociales: 0 }, 
+                "EQUIPO 5": { asignados: 0, legales: 0, psicos: 0, sociales: 0 }, 
+                "EQUIPO 6": { asignados: 0, legales: 0, psicos: 0, sociales: 0 } 
+            };
+
+            // Diccionario para contar Producción Individual
+            let produccionIndividual = {};
+
+            expedientesValidos.forEach(item => {
+                const leg = item.intervencionLegal || {};
+                const psi = item.intervencionPsicologica || {};
+                const soc = item.intervencionSocial || {};
+                const fechaCreacion = item.datosGenerales?.fechaRegistroGlobal;
+
+                let eqKey = "EQUIPO 1";
+                const eqStr = (item.equipoPropietario || "").toUpperCase();
+                if (eqStr.includes("2")) eqKey = "EQUIPO 2";
+                else if (eqStr.includes("3")) eqKey = "EQUIPO 3";
+                else if (eqStr.includes("4")) eqKey = "EQUIPO 4";
+                else if (eqStr.includes("5")) eqKey = "EQUIPO 5";
+                else if (eqStr.includes("6")) eqKey = "EQUIPO 6";
+
+                equiposData[eqKey].asignados++;
+
+                // LEGAL
+                if (leg.estadoLegal) { 
+                    kpiIntervenciones++; 
+                    equiposData[eqKey].legales++; 
+                    let esp = leg.especialista || "ABOGADO N/I";
+                    produccionIndividual[esp] = (produccionIndividual[esp] || 0) + 1;
+                }
+                
+                // PSICOLOGÍA
+                if (psi.estadoPsicologico) { 
+                    kpiIntervenciones++; 
+                    equiposData[eqKey].psicos++; 
+                    let esp = psi.especialista || "PSICÓLOGO N/I";
+                    produccionIndividual[esp] = (produccionIndividual[esp] || 0) + 1;
+
+                    if(fechaCreacion && psi.fechaEvaluacion) {
+                        const dias = calcularDiferenciaDias(fechaCreacion, psi.fechaEvaluacion);
+                        if(dias >= 0) {
+                            sumaDiasLatencia += dias;
+                            totalEvaluacionesMedidas++;
+                            if (dias <= 2) semaforoVerde++;
+                            else if (dias <= 5) semaforoAmbar++;
+                            else semaforoRojo++;
+                        }
+                    }
+                }
+
+                // TRABAJO SOCIAL
+                if (soc.estadoSocial) { 
+                    kpiIntervenciones++; 
+                    equiposData[eqKey].sociales++; 
+                    let esp = soc.especialista || "TRABAJADOR SOCIAL N/I";
+                    produccionIndividual[esp] = (produccionIndividual[esp] || 0) + 1;
+
+                    if(fechaCreacion && soc.fechaEvaluacion) {
+                        const dias = calcularDiferenciaDias(fechaCreacion, soc.fechaEvaluacion);
+                        if(dias >= 0) {
+                            sumaDiasLatencia += dias;
+                            totalEvaluacionesMedidas++;
+                            if (dias <= 2) semaforoVerde++;
+                            else if (dias <= 5) semaforoAmbar++;
+                            else semaforoRojo++;
+                        }
+                    }
+                }
+
+                const tieneAlgunaProceso = (!esEstadoConcluido(leg.estadoLegal) || (psi.estadoPsicologico && !esEstadoConcluido(psi.estadoPsicologico)) || (soc.estadoSocial && !esEstadoConcluido(soc.estadoSocial)));
+                if (tieneAlgunaProceso) casosEnProceso++;
+            });
+
+            // KPIs Superiores
+            let promedioLatencia = 0;
+            if (totalEvaluacionesMedidas > 0) {
+                promedioLatencia = (sumaDiasLatencia / totalEvaluacionesMedidas).toFixed(1);
+            }
+
+            document.getElementById('kpi-carga-total').innerText = kpiCargaTotal;
+            document.getElementById('kpi-intervenciones').innerText = kpiIntervenciones;
+            document.getElementById('kpi-pendientes').innerText = casosEnProceso;
+            document.getElementById('kpi-latencia').innerText = `${promedioLatencia} Días`;
+
+            // === 1. GRÁFICO DE AVANCE (BARRAS POR EQUIPO) ===
+            const labelsEq = Object.keys(equiposData);
+            const dataLeg = labelsEq.map(k => equiposData[k].legales);
+            const dataPsi = labelsEq.map(k => equiposData[k].psicos);
+            const dataSoc = labelsEq.map(k => equiposData[k].sociales);
+
+            const ctxEq = document.getElementById('chartEquipos').getContext('2d');
+            if (chartEquiposInstance) chartEquiposInstance.destroy();
+            chartEquiposInstance = new Chart(ctxEq, {
+                type: 'bar',
+                data: {
+                    labels: labelsEq,
+                    datasets: [
+                        { label: 'Legal', data: dataLeg, backgroundColor: '#2563eb', borderRadius: 4 },
+                        { label: 'Psicología', data: dataPsi, backgroundColor: '#9333ea', borderRadius: 4 },
+                        { label: 'Social', data: dataSoc, backgroundColor: '#059669', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+
+            // === 2. GRÁFICO DE SEMÁFORO DE LATENCIA (DOUGHNUT) ===
+            const ctxLat = document.getElementById('chartLatencia').getContext('2d');
+            if (chartLatenciaInstance) chartLatenciaInstance.destroy();
+            
+            const dataLat = totalEvaluacionesMedidas > 0 ? [semaforoVerde, semaforoAmbar, semaforoRojo] : [1];
+            const bgLat = totalEvaluacionesMedidas > 0 ? ['#10b981', '#f59e0b', '#ef4444'] : ['#e2e8f0'];
+            const lblLat = totalEvaluacionesMedidas > 0 ? ['Óptimo (0-2 días)', 'Alerta (3-5 días)', 'Crítico (>5 días)'] : ['Sin Evaluaciones'];
+
+            chartLatenciaInstance = new Chart(ctxLat, {
+                type: 'doughnut',
+                data: {
+                    labels: lblLat,
+                    datasets: [{ data: dataLat, backgroundColor: bgLat, borderWidth: 2, borderColor: '#ffffff' }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    cutout: '65%'
+                }
+            });
+
+            // === 3. GRÁFICO RANKING GLOBAL POR EQUIPOS ===
+            let arrRankEq = Object.keys(equiposData).map(k => {
+                let totalEq = equiposData[k].legales + equiposData[k].psicos + equiposData[k].sociales;
+                return { nombre: k, total: totalEq };
+            });
+            arrRankEq.sort((a, b) => b.total - a.total);
+
+            const ctxRankEq = document.getElementById('chartRankEquipos').getContext('2d');
+            if (chartRankEquiposInstance) chartRankEquiposInstance.destroy();
+            chartRankEquiposInstance = new Chart(ctxRankEq, {
+                type: 'bar',
+                data: {
+                    labels: arrRankEq.map(i => i.nombre),
+                    datasets: [{
+                        label: 'Intervenciones Totales',
+                        data: arrRankEq.map(i => i.total),
+                        backgroundColor: '#0ea5e9',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { beginAtZero: true, ticks: { precision: 0 } },
+                        y: { ticks: { font: { size: 11, weight: 'bold' } } }
+                    }
+                }
+            });
+
+            // === 4. GRÁFICO RANKING INDIVIDUAL (TOP 10) ===
+            let arrRankInd = Object.keys(produccionIndividual).map(k => ({ nombre: k, total: produccionIndividual[k] }));
+            arrRankInd.sort((a, b) => b.total - a.total);
+            const top10 = arrRankInd.slice(0, 10);
+
+            const ctxRankInd = document.getElementById('chartRankIndividual').getContext('2d');
+            if (chartRankIndividualInstance) chartRankIndividualInstance.destroy();
+            chartRankIndividualInstance = new Chart(ctxRankInd, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(i => i.nombre),
+                    datasets: [{
+                        label: 'Atenciones Realizadas',
+                        data: top10.map(i => i.total),
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { beginAtZero: true, ticks: { precision: 0 } },
+                        y: { ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // === 5. TABLA DE DESGLOSE ANALÍTICO POR EQUIPOS ===
+            const tbodyObj = document.getElementById('tablaAnalitica');
+            tbodyObj.innerHTML = "";
+
+            labelsEq.forEach(eq => {
+                const vals = equiposData[eq];
+                const atencionesIdeales = vals.asignados * 3;
+                const atencionesReales = vals.legales + vals.psicos + vals.sociales;
+                const porcentaje = atencionesIdeales > 0 ? ((atencionesReales / atencionesIdeales) * 100).toFixed(1) : 0;
+
+                let colorBadge = "bg-rose-100 text-rose-700";
+                if (porcentaje >= 80) colorBadge = "bg-emerald-100 text-emerald-700";
+                else if (porcentaje >= 50) colorBadge = "bg-amber-100 text-amber-700";
+
+                tbodyObj.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="px-3 py-3.5 font-bold text-slate-800">${eq}</td>
+                        <td class="px-3 py-3.5 text-center text-slate-600 font-semibold bg-slate-50/50">${vals.asignados}</td>
+                        <td class="px-3 py-3.5 text-center text-blue-700 font-mono">${vals.legales}</td>
+                        <td class="px-3 py-3.5 text-center text-purple-700 font-mono">${vals.psicos}</td>
+                        <td class="px-3 py-3.5 text-center text-emerald-700 font-mono">${vals.sociales}</td>
+                        <td class="px-3 py-3.5 text-center">
+                            <span class="px-3 py-1.5 rounded-lg text-[11px] font-bold ${colorBadge}">${porcentaje}%</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        };
+    </script>
+</body>
+</html>

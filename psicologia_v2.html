@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Psicología - V2 (Receptor)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+        .tab-btn.active { border-bottom: 3px solid #9333ea; color: #9333ea; font-weight: 700; background-color: #faf5ff; }
+        input, select, textarea { text-transform: uppercase; }
+        input::placeholder, textarea::placeholder { text-transform: none; }
+    </style>
+</head>
+<body>
+<!-- MODAL DE ACCESO -->
+<div id="modalLogin" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-slate-200">
+        <div class="text-center space-y-2">
+            <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800">MÓDULO PSICOLOGÍA V2</h2>
+            <p class="text-xs text-purple-600 font-bold bg-purple-50 py-1 rounded">BANDEJA DE ATENCIÓN DE CASOS</p>
+            <p class="text-xs text-slate-500">Seleccione su perfil para ingresar al sistema.</p>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">USUARIO / PERFIL:*</label>
+                <select id="loginUsuario" class="w-full text-sm p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none font-medium">
+                    <option value="">-- SELECCIONE PERFIL --</option>
+                    <option value="PSICÓLOGO - EQUIPO 1">PSICÓLOGO - EQUIPO 1</option>
+                    <option value="PSICÓLOGO - EQUIPO 2">PSICÓLOGO - EQUIPO 2</option>
+                    <option value="PSICÓLOGO - EQUIPO 3">PSICÓLOGO - EQUIPO 3</option>
+                    <option value="PSICÓLOGO - EQUIPO 4">PSICÓLOGO - EQUIPO 4</option>
+                    <option value="PSICÓLOGO - EQUIPO 5">PSICÓLOGO - EQUIPO 5</option>
+                    <option value="PSICÓLOGO - EQUIPO 6">PSICÓLOGO - EQUIPO 6</option>
+                </select>
+            </div>
+            <button onclick="iniciarSesion()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm transition shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-right-to-bracket"></i> INGRESAR A MI BANDEJA
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EVALUACIÓN PSICOLÓGICA -->
+<div id="modalEvaluacion" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center p-4 z-40">
+    <div class="bg-white rounded-xl max-w-4xl w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[95vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b pb-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-notes-medical"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">EVALUACIÓN PSICOLÓGICA</h3>
+                    <p class="text-xs text-slate-500">Expediente Maestro: <strong id="lblCodigoMaestro" class="text-purple-700"></strong></p>
+                </div>
+            </div>
+            <button onclick="cerrarEvaluacion()" class="text-slate-400 hover:text-slate-600 text-lg font-bold px-2 py-1"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <!-- DATOS DE SOLO LECTURA (MAESTROS) -->
+        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="md:col-span-3 pb-2 border-b border-slate-200 flex items-center gap-2 text-slate-700 font-bold">
+                <i class="fa-solid fa-lock text-slate-400"></i> DATOS DE FILIACIÓN (REGISTRADOS POR LEGAL)
+            </div>
+            <div><span class="text-slate-500 block mb-0.5">Administrado:</span><strong id="ro_administrado" class="text-slate-800 text-sm"></strong></div>
+            <div><span class="text-slate-500 block mb-0.5">DNI:</span><strong id="ro_dni" class="text-slate-800 text-sm"></strong></div>
+            <div><span class="text-slate-500 block mb-0.5">Edad / Sexo:</span><strong id="ro_edadSexo" class="text-slate-800"></strong></div>
+            <div><span class="text-slate-500 block mb-0.5">N° Expediente:</span><strong id="ro_exp" class="text-purple-700 font-mono text-sm"></strong></div>
+            <div><span class="text-slate-500 block mb-0.5">Hoja Trámite (HT):</span><strong id="ro_ht" class="text-slate-800 font-mono"></strong></div>
+            <div><span class="text-slate-500 block mb-0.5">Fecha Creación:</span><strong id="ro_fecha" class="text-slate-800"></strong></div>
+        </div>
+
+        <!-- FORMULARIO DE PSICOLOGÍA -->
+        <form id="formPsico" onsubmit="return guardarEvaluacion(event)" class="space-y-4 pt-2">
+            <input type="hidden" id="evalIndex">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-purple-800 mb-1">FECHA DE EVALUACIÓN *</label>
+                    <input type="date" id="fechaEvaluacion" required class="w-full text-sm p-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-purple-800 mb-1">ESTADO PSICOLÓGICO *</label>
+                    <select id="estadoPsicologico" required class="w-full text-sm p-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <option value="">SELECCIONE ESTADO</option>
+                        <option value="1. EN EVALUACIÓN PSICOLÓGICA">1. EN EVALUACIÓN PSICOLÓGICA</option>
+                        <option value="2. INFORME PSICOLÓGICO EMITIDO">2. INFORME PSICOLÓGICO EMITIDO</option>
+                        <option value="3. CONTENCIÓN EMOCIONAL REALIZADA">3. CONTENCIÓN EMOCIONAL REALIZADA</option>
+                        <option value="4. CONCLUIDO / ARCHIVADO">4. CONCLUIDO / ARCHIVADO</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-purple-800 mb-1">TIPO DE ATENCIÓN *</label>
+                    <select id="tipoAtencion" required class="w-full text-sm p-2.5 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        <option value="">SELECCIONE TIPO</option>
+                        <option value="EVALUACIÓN PSICOLÓGICA INTEGRAL">EVALUACIÓN PSICOLÓGICA INTEGRAL</option>
+                        <option value="ACOMPAÑAMIENTO Y CONTENCIÓN">ACOMPAÑAMIENTO Y CONTENCIÓN</option>
+                        <option value="ENTREVISTA PRELIMINAR">ENTREVISTA PRELIMINAR</option>
+                        <option value="VISITA DE OBSERVACIÓN CONDUCTUAL">VISITA DE OBSERVACIÓN CONDUCTUAL</option>
+                    </select>
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-semibold text-purple-800 mb-1">CONCLUSIONES / AVANCE PSICOLÓGICO *</label>
+                    <textarea id="observaciones" rows="4" required placeholder="DIAGNÓSTICO PRESUNTIVO, OBSERVACIONES CONDUCTUALES Y RECOMENDACIONES CLÍNICAS..." class="w-full text-sm p-3 bg-white border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <button type="button" onclick="cerrarEvaluacion()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg text-sm transition">CANCELAR</button>
+                <button type="submit" id="btnGuardarEval" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> GUARDAR EVALUACIÓN
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL DERIVAR CASO -->
+<div id="modalDerivar" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+        <div class="text-center space-y-2">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-shuffle"></i>
+            </div>
+            <h2 class="text-lg font-bold text-slate-800">DERIVAR EXPEDIENTE</h2>
+            <p class="text-xs text-slate-500">Reasignar caso a otro equipo por apoyo.</p>
+        </div>
+        <input type="hidden" id="derivarIndex">
+        <div class="space-y-3">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">DERIVAR A:*</label>
+                <select id="derivarEquipo" class="w-full text-sm p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <option value="EQUIPO 1">EQUIPO 1</option>
+                    <option value="EQUIPO 2">EQUIPO 2</option>
+                    <option value="EQUIPO 3">EQUIPO 3</option>
+                    <option value="EQUIPO 4">EQUIPO 4</option>
+                    <option value="EQUIPO 5">EQUIPO 5</option>
+                    <option value="EQUIPO 6">EQUIPO 6</option>
+                </select>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="cerrarDerivar()" class="w-1/2 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg text-sm transition">CANCELAR</button>
+                <button onclick="confirmarDerivacion()" class="w-1/2 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-sm transition shadow">DERIVAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENEDOR PRINCIPAL -->
+<div class="max-w-7xl mx-auto bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
+    <div class="bg-slate-900 text-white p-5 flex flex-col md:flex-row items-center justify-between border-b-4 border-purple-600">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-brain text-3xl text-purple-400"></i>
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold tracking-wide">MÓDULO DE PSICOLOGÍA V2</h1>
+                <p class="text-xs text-slate-400">SISTEMA INTEGRADO DE RECEPCIÓN Y EVALUACIÓN (UPE)</p>
+            </div>
+        </div>
+        <div class="mt-3 md:mt-0 flex items-center gap-3">
+            <span id="badgeRolActivo" class="px-3 py-1 bg-slate-800 text-purple-300 text-xs rounded-full font-semibold border border-slate-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-user"></i> SIN SESIÓN
+            </span>
+            <button onclick="cerrarSesion()" class="px-3 py-1 bg-rose-600/80 hover:bg-rose-600 text-white text-xs rounded-full transition flex items-center gap-1">
+                <i class="fa-solid fa-power-off"></i> SALIR
+            </button>
+        </div>
+    </div>
+
+    <div class="flex border-b border-slate-200 bg-slate-100 text-slate-600 text-sm font-semibold">
+        <button onclick="cambiarPestana('tab-pendientes')" id="btn-tab-pendientes" class="tab-btn active px-6 py-3.5 flex items-center gap-2 transition hover:text-purple-600">
+            <i class="fa-solid fa-inbox"></i> CASOS NUEVOS / PENDIENTES
+            <span id="badgePendientes" class="ml-1 px-2 py-0.5 text-xs bg-rose-500 text-white rounded-full animate-pulse">0</span>
+        </button>
+        <button onclick="cambiarPestana('tab-historial')" id="btn-tab-historial" class="tab-btn px-6 py-3.5 flex items-center gap-2 transition hover:text-purple-600">
+            <i class="fa-solid fa-check-double"></i> MIS EVALUACIONES
+        </button>
+        <button onclick="cambiarPestana('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn px-6 py-3.5 flex items-center gap-2 transition hover:text-purple-600">
+            <i class="fa-solid fa-chart-line"></i> DASHBOARD PSICOLOGÍA
+        </button>
+    </div>
+
+    <div class="p-6">
+        <!-- PESTAÑA 1: BANDEJA DE PENDIENTES -->
+        <div id="tab-pendientes" class="tab-content space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <div>
+                    <h2 class="text-base font-bold text-purple-900">BANDEJA DE ENTRADA DE TU EQUIPO</h2>
+                    <p class="text-xs text-purple-700">Expedientes creados por Legal que requieren tu evaluación.</p>
+                </div>
+                <button onclick="sincronizarConFirebase()" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm shadow transition flex items-center gap-2">
+                    <i class="fa-solid fa-rotate"></i> REFRESCAR BANDEJA
+                </button>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="w-full text-xs text-left text-slate-700">
+                    <thead class="text-xs text-white uppercase bg-slate-800">
+                        <tr>
+                            <th class="p-3">Código Master</th>
+                            <th class="p-3">Fecha Ingreso (Legal)</th>
+                            <th class="p-3">N° Expediente</th>
+                            <th class="p-3">Administrado</th>
+                            <th class="p-3">DNI</th>
+                            <th class="p-3">Estado Actual</th>
+                            <th class="p-3 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaPendientes" class="divide-y divide-slate-200 bg-white"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: HISTORIAL DE ATENCIONES -->
+        <div id="tab-historial" class="tab-content hidden space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">HISTORIAL DE EVALUACIONES PSICOLÓGICAS</h2>
+                    <p class="text-xs text-slate-500">Casos que ya has atendido o evaluado.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportarExcel()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm shadow transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel text-lg"></i> EXPORTAR A EXCEL (.XLSX)
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-purple-50/50 p-3.5 rounded-lg border border-purple-200/80 flex flex-col md:flex-row items-center justify-between gap-3">
+                <div class="w-full md:w-2/3 flex items-center gap-2">
+                    <input type="text" id="inputBusqueda" onkeyup="if(event.key==='Enter') ejecutarBusquedaHistorial()" placeholder="Buscar por DNI, N° Expediente o Apellidos..." class="w-full px-3 py-2 bg-white text-xs border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none uppercase">
+                    <button type="button" onclick="ejecutarBusquedaHistorial()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-md text-xs transition">BUSCAR</button>
+                    <button type="button" onclick="limpiarBusqueda()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-md text-xs transition">LIMPIAR</button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="w-full text-xs text-left text-slate-700">
+                    <thead class="text-xs text-white uppercase bg-slate-800">
+                        <tr>
+                            <th class="p-3">Código Master</th>
+                            <th class="p-3">Fecha Evaluación</th>
+                            <th class="p-3">N° Expediente</th>
+                            <th class="p-3">Administrado</th>
+                            <th class="p-3">Tipo Atención</th>
+                            <th class="p-3">Estado Psicológico</th>
+                            <th class="p-3 text-center">Modificar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaHistorial" class="divide-y divide-slate-200 bg-white"></tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+                <span id="infoPaginacion" class="text-xs text-slate-500">Mostrando página 1</span>
+                <div class="flex gap-2">
+                    <button onclick="cambiarPagina(-1)" id="btnPagPrev" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded text-xs transition">ANTERIOR</button>
+                    <button onclick="cambiarPagina(1)" id="btnPagNext" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded text-xs transition">SIGUIENTE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 3: DASHBOARD -->
+        <div id="tab-dashboard" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-purple-50 border border-purple-200 p-4 rounded-xl flex items-center gap-4">
+                    <div class="p-3 bg-purple-600 text-white rounded-lg text-xl"><i class="fa-solid fa-inbox"></i></div>
+                    <div>
+                        <p class="text-xs font-semibold text-purple-700 uppercase">Derivados a Equipo</p>
+                        <h3 id="kpiAsignados" class="text-2xl font-black text-purple-900">0</h3>
+                    </div>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-center gap-4">
+                    <div class="p-3 bg-emerald-600 text-white rounded-lg text-xl"><i class="fa-solid fa-check-double"></i></div>
+                    <div>
+                        <p class="text-xs font-semibold text-emerald-700 uppercase">Evaluaciones Realizadas</p>
+                        <h3 id="kpiAtendidos" class="text-2xl font-black text-emerald-900">0</h3>
+                    </div>
+                </div>
+                <div class="bg-rose-50 border border-rose-200 p-4 rounded-xl flex items-center gap-4">
+                    <div class="p-3 bg-rose-600 text-white rounded-lg text-xl"><i class="fa-solid fa-clock"></i></div>
+                    <div>
+                        <p class="text-xs font-semibold text-rose-700 uppercase">Pendientes de Atención</p>
+                        <h3 id="kpiProceso" class="text-2xl font-black text-rose-900">0</h3>
+                    </div>
+                </div>
+                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl flex items-center gap-4">
+                    <div class="p-3 bg-indigo-600 text-white rounded-lg text-xl"><i class="fa-solid fa-chart-pie"></i></div>
+                    <div>
+                        <p class="text-xs font-semibold text-indigo-700 uppercase">% Atención Equipo</p>
+                        <h3 id="kpiEficacia" class="text-2xl font-black text-indigo-900">0%</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div class="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4">Estado de Mis Evaluaciones</h3>
+                    <div class="relative w-full h-[260px]">
+                        <canvas id="chartEstados"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4">Tipos de Atención Brindada</h3>
+                    <div class="relative w-full h-[260px]">
+                        <canvas id="chartTipo"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Apuntamos al Nodo Maestro Central V2
+    const FIREBASE_DB_URL = "https://upe-control-multidisciplinario-default-rtdb.firebaseio.com/expedientes_upe_v2";
+    let usuarioActivo = null;
+    let equipoUsuario = null;
+
+    let registrosMaestros = [];
+    let chartEst = null, chartTip = null;
+    
+    // Variables para la pestaña Historial
+    let paginaActual = 1;
+    const registrosPorPagina = 10;
+    let listaHistorialActual = [];
+
+    function formatearFecha(fechaStr) {
+        if (!fechaStr) return '-';
+        const partes = fechaStr.split('-');
+        if (partes.length === 3 && partes[0].length === 4) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return fechaStr;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('input[type="text"], textarea').forEach(el => {
+            el.addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+        });
+        sincronizarConFirebase(true);
+    });
+
+    async function sincronizarConFirebase(silencioso = false) {
+        try {
+            const response = await fetch(`${FIREBASE_DB_URL}.json`);
+            const data = await response.json();
+            
+            if (data) {
+                registrosMaestros = Object.values(data);
+            } else {
+                registrosMaestros = [];
+            }
+
+            if (!silencioso) alert("✅ Bandejas actualizadas desde el Expediente Maestro.");
+            if (usuarioActivo) procesarBandejas();
+        } catch (err) {
+            console.error("Error al conectar con Firebase:", err);
+            if (!silencioso) alert("⚠️ Error de conexión con la nube.");
+        }
+    }
+
+    function iniciarSesion() {
+        const usr = document.getElementById("loginUsuario").value;
+        if (!usr) return alert("Seleccione su perfil para ingresar.");
+        usuarioActivo = usr;
+        
+        // Extraemos el equipo (ej. "EQUIPO 1") de la cadena "PSICÓLOGO - EQUIPO 1"
+        const match = usr.match(/(EQUIPO \d+)/i);
+        equipoUsuario = match ? match[1].toUpperCase() : "";
+        
+        document.getElementById("badgeRolActivo").innerHTML = `<i class="fa-solid fa-user-check"></i> ${usr}`;
+        document.getElementById("modalLogin").classList.add("hidden");
+        
+        procesarBandejas();
+    }
+
+    function cerrarSesion() {
+        usuarioActivo = null;
+        equipoUsuario = null;
+        document.getElementById("modalLogin").classList.remove("hidden");
+    }
+
+    function cambiarPestana(tabId) {
+        document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+        document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+        document.getElementById(tabId).classList.remove("hidden");
+        document.getElementById("btn-" + tabId).classList.add("active");
+
+        if (tabId === 'tab-pendientes' || tabId === 'tab-historial') procesarBandejas();
+        if (tabId === 'tab-dashboard') actualizarDashboard();
+    }
+
+    function procesarBandejas() {
+        if (!equipoUsuario) return;
+
+        // 1. Filtrar Pendientes: Casos asignados a mi equipo que NO tienen evaluación psicológica completa
+        const pendientes = registrosMaestros.filter(r => {
+            const esMio = (r.equipoPropietario || "").toUpperCase() === equipoUsuario;
+            const psico = r.intervencionPsicologica;
+            const faltaEvaluar = !psico || !psico.estadoPsicologico || psico.estadoPsicologico.includes("1. EN EVALUACIÓN");
+            return esMio && faltaEvaluar;
+        });
+
+        document.getElementById("badgePendientes").innerText = pendientes.length;
+        renderizarTablaPendientes(pendientes);
+
+        // 2. Filtrar Historial: Casos donde YO he hecho una intervención
+        const historial = registrosMaestros.filter(r => {
+            return r.intervencionPsicologica && r.intervencionPsicologica.especialista === usuarioActivo;
+        });
+        
+        listaHistorialActual = historial;
+        renderizarTablaHistorial(historial);
+    }
+
+    function renderizarTablaPendientes(pendientes) {
+        const tbody = document.getElementById("tablaPendientes");
+        tbody.innerHTML = "";
+
+        if (pendientes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-medium"><i class="fa-solid fa-mug-hot text-2xl mb-2 block text-purple-300"></i> No tienes expedientes pendientes de evaluación. ¡Excelente trabajo!</td></tr>`;
+            return;
+        }
+
+        pendientes.forEach(r => {
+            const indexReal = registrosMaestros.indexOf(r);
+            const dg = r.datosGenerales || {};
+            const leg = r.intervencionLegal || {};
+            const psico = r.intervencionPsicologica || {};
+            
+            const estadoActual = psico.estadoPsicologico ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">EN PROCESO</span>` : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">NUEVO (SIN LEER)</span>`;
+
+            tbody.innerHTML += `
+                <tr class="border-b hover:bg-purple-50">
+                    <td class="p-3 font-mono font-bold text-purple-700">${r.codigo || '-'}</td>
+                    <td class="p-3 text-xs">${formatearFecha(dg.fechaRegistroGlobal)}</td>
+                    <td class="p-3 font-mono font-bold text-slate-800">${dg.numExpediente || '-'}</td>
+                    <td class="p-3 font-medium">${dg.apellidosCompletos || ''}, ${dg.nombresCompletos || ''}</td>
+                    <td class="p-3">${dg.dni || '-'}</td>
+                    <td class="p-3">${estadoActual}</td>
+                    <td class="p-3 text-center flex justify-center gap-2">
+                        <button onclick="abrirEvaluacion(${indexReal})" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded shadow transition text-xs flex items-center gap-1">
+                            <i class="fa-solid fa-notes-medical"></i> Evaluar
+                        </button>
+                        <button onclick="abrirModalDerivar(${indexReal})" class="px-2 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded transition text-xs" title="Derivar a otro equipo">
+                            <i class="fa-solid fa-shuffle"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderizarTablaHistorial(lista) {
+        const totalPaginas = Math.ceil(lista.length / registrosPorPagina) || 1;
+        if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+        const inicio = (paginaActual - 1) * registrosPorPagina;
+        const fin = inicio + registrosPorPagina;
+        const paginaRegistros = lista.slice(inicio, fin);
+
+        const tbody = document.getElementById("tablaHistorial");
+        tbody.innerHTML = "";
+
+        if (lista.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">No hay historial de evaluaciones para mostrar.</td></tr>`;
+            document.getElementById("infoPaginacion").innerText = "Mostrando 0 registros";
+            return;
+        }
+
+        paginaRegistros.forEach((r) => {
+            const indexReal = registrosMaestros.indexOf(r);
+            const dg = r.datosGenerales || {};
+            const psico = r.intervencionPsicologica || {};
+
+            tbody.innerHTML += `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="p-3 font-mono font-bold text-purple-700">${r.codigo || '-'}</td>
+                    <td class="p-3">${formatearFecha(psico.fechaEvaluacion)}</td>
+                    <td class="p-3 font-mono font-bold text-slate-800">${dg.numExpediente || '-'}</td>
+                    <td class="p-3 font-medium">${dg.apellidosCompletos || ''}, ${dg.nombresCompletos || ''}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">${psico.tipoAtencion || '-'}</span></td>
+                    <td class="p-3 text-[11px] font-semibold">${psico.estadoPsicologico || '-'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="abrirEvaluacion(${indexReal})" class="p-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded transition" title="Modificar Evaluación">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("infoPaginacion").innerText = `Página ${paginaActual} de ${totalPaginas} (${lista.length} evaluaciones)`;
+        document.getElementById("btnPagPrev").disabled = paginaActual === 1;
+        document.getElementById("btnPagNext").disabled = paginaActual === totalPaginas;
+    }
+
+    function cambiarPagina(delta) {
+        paginaActual += delta;
+        renderizarTablaHistorial(listaHistorialActual);
+    }
+
+    function ejecutarBusquedaHistorial() {
+        const txt = document.getElementById("inputBusqueda").value.toLowerCase();
+        
+        const historial = registrosMaestros.filter(r => r.intervencionPsicologica && r.intervencionPsicologica.especialista === usuarioActivo);
+        
+        const filtrados = historial.filter(r => {
+            const dg = r.datosGenerales || {};
+            return (r.codigo && r.codigo.toLowerCase().includes(txt)) || 
+                   (dg.numExpediente && dg.numExpediente.toLowerCase().includes(txt)) || 
+                   (dg.dni && dg.dni.includes(txt)) || 
+                   (dg.apellidosCompletos && dg.apellidosCompletos.toLowerCase().includes(txt));
+        });
+        paginaActual = 1;
+        listaHistorialActual = filtrados;
+        renderizarTablaHistorial(filtrados);
+    }
+
+    function limpiarBusqueda() {
+        document.getElementById("inputBusqueda").value = "";
+        paginaActual = 1;
+        procesarBandejas();
+    }
+
+    function abrirEvaluacion(indexEnBase) {
+        const r = registrosMaestros[indexEnBase];
+        if (!r) return;
+
+        const dg = r.datosGenerales || {};
+        const psico = r.intervencionPsicologica || {};
+
+        // Llenar datos de solo lectura
+        document.getElementById("lblCodigoMaestro").innerText = r.codigo;
+        document.getElementById("ro_administrado").innerText = `${dg.apellidosCompletos || ''}, ${dg.nombresCompletos || ''}`;
+        document.getElementById("ro_dni").innerText = dg.dni || '-';
+        document.getElementById("ro_edadSexo").innerText = `${dg.edad || 0} años / ${dg.sexo || '-'}`;
+        document.getElementById("ro_exp").innerText = dg.numExpediente || '-';
+        document.getElementById("ro_ht").innerText = dg.numHojaTramite || '-';
+        document.getElementById("ro_fecha").innerText = formatearFecha(dg.fechaRegistroGlobal);
+
+        // Limpiar o llenar formulario
+        document.getElementById("evalIndex").value = indexEnBase;
+        
+        if (psico.estadoPsicologico) {
+            document.getElementById("fechaEvaluacion").value = psico.fechaEvaluacion || "";
+            document.getElementById("estadoPsicologico").value = psico.estadoPsicologico || "";
+            document.getElementById("tipoAtencion").value = psico.tipoAtencion || "";
+            document.getElementById("observaciones").value = psico.observaciones || "";
+            document.getElementById("btnGuardarEval").innerHTML = `<i class="fa-solid fa-pen-to-square"></i> ACTUALIZAR EVALUACIÓN`;
+        } else {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById("formPsico").reset();
+            document.getElementById("fechaEvaluacion").value = hoy;
+            document.getElementById("btnGuardarEval").innerHTML = `<i class="fa-solid fa-floppy-disk"></i> GUARDAR EVALUACIÓN`;
+        }
+
+        document.getElementById("modalEvaluacion").classList.remove("hidden");
+        document.getElementById("modalEvaluacion").classList.add("flex");
+    }
+
+    function cerrarEvaluacion() {
+        document.getElementById("modalEvaluacion").classList.add("hidden");
+        document.getElementById("modalEvaluacion").classList.remove("flex");
+    }
+
+    async function guardarEvaluacion(e) {
+        if (e) e.preventDefault();
+        const btn = document.getElementById('btnGuardarEval');
+        if (btn) btn.disabled = true;
+
+        const index = parseInt(document.getElementById("evalIndex").value);
+        const r = registrosMaestros[index];
+
+        // Construir solo el objeto de Psicología
+        const intervencion = {
+            especialista: usuarioActivo,
+            fechaEvaluacion: document.getElementById("fechaEvaluacion").value,
+            estadoPsicologico: document.getElementById("estadoPsicologico").value,
+            tipoAtencion: document.getElementById("tipoAtencion").value,
+            observaciones: document.getElementById("observaciones").value.toUpperCase()
+        };
+
+        // Actualizar memoria local
+        r.intervencionPsicologica = intervencion;
+
+        // Guardado quirúrgico en Firebase (Solo actualiza la rama de psicología)
+        try {
+            await fetch(`${FIREBASE_DB_URL}/${r.codigo}/intervencionPsicologica.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(intervencion)
+            });
+            console.log("✅ Intervención psicológica guardada en Expediente Maestro.");
+        } catch (err) {
+            console.error("❌ Error al guardar en Firebase:", err);
+        }
+
+        cerrarEvaluacion();
+        if (btn) btn.disabled = false;
+        
+        // Si lo concluyó, desaparece de la bandeja y va al historial
+        procesarBandejas();
+        alert("✅ Evaluación Psicológica anexada al Expediente Maestro.");
+        return false;
+    }
+
+    // Lógica de "Válvula de Escape" (Derivar)
+    function abrirModalDerivar(indexEnBase) {
+        document.getElementById("derivarIndex").value = indexEnBase;
+        document.getElementById("derivarEquipo").value = equipoUsuario; // Default: el mismo
+        document.getElementById("modalDerivar").classList.remove("hidden");
+        document.getElementById("modalDerivar").classList.add("flex");
+    }
+
+    function cerrarDerivar() {
+        document.getElementById("modalDerivar").classList.add("hidden");
+        document.getElementById("modalDerivar").classList.remove("flex");
+    }
+
+    async function confirmarDerivacion() {
+        const index = parseInt(document.getElementById("derivarIndex").value);
+        const nuevoEquipo = document.getElementById("derivarEquipo").value;
+        const r = registrosMaestros[index];
+
+        if (nuevoEquipo === equipoUsuario) {
+            alert("Seleccione un equipo diferente para derivar.");
+            return;
+        }
+
+        r.equipoPropietario = nuevoEquipo; // Cambiamos el dueño
+
+        try {
+            await fetch(`${FIREBASE_DB_URL}/${r.codigo}/equipoPropietario.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevoEquipo)
+            });
+        } catch (err) {
+            console.error(err);
+        }
+
+        cerrarDerivar();
+        procesarBandejas(); // Al refrescar, ya no estará en la bandeja porque ya no es de su equipo
+        alert(`✅ Expediente ${r.codigo} derivado a ${nuevoEquipo}.`);
+    }
+
+    function actualizarDashboard() {
+        // Toda la carga asignada a este usuario que está en el maestro
+        const asignadosTotal = registrosMaestros.filter(r => (r.equipoPropietario || "").toUpperCase() === equipoUsuario).length;
+        
+        // Lo que el usuario ya resolvió (no depende del equipo actual, sino de que él lo haya firmado)
+        const misAtenciones = registrosMaestros.filter(r => r.intervencionPsicologica && r.intervencionPsicologica.especialista === usuarioActivo);
+        
+        const totalMisAtenciones = misAtenciones.length;
+        const pendientesMios = asignadosTotal - totalMisAtenciones; // Aproximación rápida
+
+        document.getElementById("kpiAsignados").innerText = asignadosTotal;
+        document.getElementById("kpiAtendidos").innerText = totalMisAtenciones;
+        document.getElementById("kpiProceso").innerText = pendientesMios > 0 ? pendientesMios : 0;
+        document.getElementById("kpiEficacia").innerText = asignadosTotal > 0 ? ((totalMisAtenciones/asignadosTotal)*100).toFixed(1) + "%" : "0%";
+
+        const estados = ['1. EN EVALUACIÓN PSICOLÓGICA', '2. INFORME PSICOLÓGICO EMITIDO', '3. CONTENCIÓN EMOCIONAL REALIZADA', '4. CONCLUIDO / ARCHIVADO'];
+        const conteoEst = estados.map(est => misAtenciones.filter(r => r.intervencionPsicologica.estadoPsicologico === est).length);
+
+        if (chartEst) chartEst.destroy();
+        chartEst = new Chart(document.getElementById('chartEstados'), {
+            type: 'bar',
+            data: { labels: ['EN EVALUACIÓN', 'INFORME EMITIDO', 'CONTENCIÓN', 'CONCLUIDO'], datasets: [{ label: 'Mis Casos', data: conteoEst, backgroundColor: '#9333ea' }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        const tipos = ['EVALUACIÓN PSICOLÓGICA INTEGRAL', 'ACOMPAÑAMIENTO Y CONTENCIÓN', 'ENTREVISTA PRELIMINAR', 'VISITA DE OBSERVACIÓN CONDUCTUAL'];
+        const conteoTip = tipos.map(t => misAtenciones.filter(r => r.intervencionPsicologica.tipoAtencion === t).length);
+
+        if (chartTip) chartTip.destroy();
+        chartTip = new Chart(document.getElementById('chartTipo'), {
+            type: 'doughnut',
+            data: { labels: ['EVAL. INTEGRAL', 'ACOMPAÑAMIENTO', 'ENTREVISTA', 'VISITA CONDUCTUAL'], datasets: [{ data: conteoTip, backgroundColor: ['#9333ea', '#a855f7', '#c084fc', '#d8b4fe'] }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    async function exportarExcel() {
+        const data = listaHistorialActual;
+        if (data.length === 0) return alert("No hay datos para exportar.");
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet("Mis Evaluaciones");
+
+        sheet.views = [{ showGridLines: true }];
+
+        sheet.columns = [
+            { header: 'CÓDIGO MASTER', key: 'codigo', width: 15 },
+            { header: 'FECHA EVALUACIÓN', key: 'fechaEvaluacion', width: 20 },
+            { header: 'N° EXPEDIENTE', key: 'numExpediente', width: 20 },
+            { header: 'APELLIDOS COMPLETOS', key: 'apellidosCompletos', width: 25 },
+            { header: 'NOMBRES COMPLETOS', key: 'nombresCompletos', width: 25 },
+            { header: 'DNI', key: 'dni', width: 15 },
+            { header: 'ESTADO PSICOLÓGICO', key: 'estadoPsicologico', width: 30 },
+            { header: 'TIPO DE ATENCIÓN', key: 'tipoAtencion', width: 30 },
+            { header: 'CONCLUSIONES / DIAGNÓSTICO', key: 'observaciones', width: 45 }
+        ];
+
+        const headerRow = sheet.getRow(1);
+        headerRow.height = 25;
+        headerRow.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6B21A8' } };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        data.forEach((r, index) => {
+            const dg = r.datosGenerales || {};
+            const psico = r.intervencionPsicologica || {};
+
+            const row = sheet.addRow({
+                codigo: r.codigo,
+                fechaEvaluacion: formatearFecha(psico.fechaEvaluacion),
+                numExpediente: dg.numExpediente || '',
+                apellidosCompletos: dg.apellidosCompletos || '',
+                nombresCompletos: dg.nombresCompletos || '',
+                dni: dg.dni || '',
+                estadoPsicologico: psico.estadoPsicologico || '',
+                tipoAtencion: psico.tipoAtencion || '',
+                observaciones: psico.observaciones || ''
+            });
+            row.font = { name: 'Segoe UI', size: 9 };
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Mis_Evaluaciones_Psicologia.xlsx';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+</script>
+</body>
+</html>
